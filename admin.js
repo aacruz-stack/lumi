@@ -3,7 +3,8 @@
   'use strict';
   var root = document.getElementById('painel');
   var P = { senha: '', aba: 'pendentes', dados: {}, carregando: false, erro: '', agFiltro: 'hoje', agBusca: '', pacFiltro: 'abertos', modal: null };
-  var ABAS = [['pendentes', 'Pendentes'], ['agenda', 'Agenda'], ['pacotes', 'Pacotes'], ['bloqueios', 'Bloqueios']];
+  var ABAS = [['pendentes', 'Pendentes'], ['agenda', 'Agenda'], ['pacotes', 'Pacotes'], ['bloqueios', 'Bloqueios'], ['catalogo', 'Catálogo'], ['ajustes', 'Ajustes']];
+  var EXT = { loaders: {}, views: {}, click: null, submit: null };
 
   function chamar(action, body) { return Api.post(action, Object.assign({ senha: P.senha }, body || {})); }
   function hojeLocal() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
@@ -45,6 +46,7 @@
       else if (aba === 'agenda') P.dados.agenda = await chamar('adm_agenda', agParams());
       else if (aba === 'pacotes') P.dados.pacotes = await chamar('adm_pacotes', { filtro: P.pacFiltro });
       else if (aba === 'bloqueios') P.dados.bloqueios = await chamar('adm_bloqueios');
+      else if (EXT.loaders[aba]) await EXT.loaders[aba]();
       if (aba !== 'pendentes' && !P.dados.pendentes) { try { P.dados.pendentes = await chamar('adm_pendentes'); } catch (e) {} }
     } catch (e) {
       if (/senha|tentativas/i.test(e.message)) return telaLogin(e.message);
@@ -53,7 +55,7 @@
     desenhar();
   }
   function desenhar() {
-    var f = { pendentes: viewPendentes, agenda: viewAgenda, pacotes: viewPacotes, bloqueios: viewBloqueios }[P.aba];
+    var f = { pendentes: viewPendentes, agenda: viewAgenda, pacotes: viewPacotes, bloqueios: viewBloqueios }[P.aba] || EXT.views[P.aba];
     moldura(f());
   }
 
@@ -238,6 +240,7 @@
   /* ---------- eventos ---------- */
   root.addEventListener('click', function (ev) {
     var t = ev.target.closest('button,[data-fundo]'); if (!t) return;
+    if (EXT.click && EXT.click(t, ev)) return;
     if (t.dataset.fundo && ev.target === t) return fecharModal();
     if (t.dataset.aba) return abrir(t.dataset.aba);
     if (t.dataset.sair) return sair();
@@ -251,6 +254,7 @@
   });
   root.addEventListener('submit', async function (ev) {
     ev.preventDefault();
+    if (EXT.submit && await EXT.submit(ev)) return;
     if (ev.target.id === 'f-busca') { P.agBusca = document.getElementById('busca').value; return abrir('agenda'); }
     if (ev.target.id === 'f-bloq') {
       var body = { data: document.getElementById('b-data').value, inicio: document.getElementById('b-ini').value, fim: document.getElementById('b-fim').value, motivo: document.getElementById('b-motivo').value };
@@ -261,6 +265,9 @@
       } catch (e) { P.erro = e.message; desenhar(); window.scrollTo({ top: 0 }); }
     }
   });
+
+  window.LumiAdmin = { P: P, EXT: EXT, chamar: chamar, abrirModal: abrirModal, fecharModal: fecharModal, desenhar: desenhar, abrir: abrir, modalConfirmar: modalConfirmar,
+    hojeLocal: hojeLocal, telaLogin: telaLogin };
 
   /* ---------- inicio ---------- */
   var salva = null; try { salva = sessionStorage.getItem('lumi_adm'); } catch (e) {}

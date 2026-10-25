@@ -60,9 +60,13 @@
 
   /* 0 — servico */
   function precoHtml(it) {
-    if (it.tipo === 'pacote' && it.preco_avulso > it.preco)
-      return '<span class="preco"><span class="de">' + brl(it.preco_avulso) + '</span>' + brl(it.preco) + '</span>';
+    if (it.de > it.preco) return '<span class="preco"><span class="de">' + brl(it.de) + '</span>' + brl(it.preco) + '</span>';
     return '<span class="preco">' + brl(it.preco) + '</span>';
+  }
+  function promoChip(it) {
+    if (!it.promo) return '';
+    var p = it.promo.ate.split('-');
+    return '<div><span class="chip ouro">' + esc(it.promo.nome) + ' · até ' + p[2] + '/' + p[1] + '</span></div>';
   }
   function cardItem(it) {
     var sel = S.item && S.item.id === it.id, extra = '';
@@ -72,6 +76,7 @@
         '<span class="chip">Validade ' + it.validade_dias + ' dias</span></div>' +
         '<ul class="inclui">' + it.inclui.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
     } else extra = '<div class="min">' + it.duracao_min + ' min</div>';
+    extra = promoChip(it) + extra;
     return '<button type="button" class="cartao' + (sel ? ' sel' : '') + '" data-a="item" data-id="' + esc(it.id) + '" aria-pressed="' + sel + '">' +
       '<div class="linha"><span class="nome">' + esc(it.nome) + '</span>' + precoHtml(it) + '</div>' + extra + '</button>';
   }
@@ -86,7 +91,7 @@
       if (ads.length) {
         h += '<div class="cartao"><h3 style="margin-bottom:6px">Adicionais <span class="min">(opcional)</span></h3>' + ads.map(function (a) {
           var q = S.adds[a.id] || 0;
-          return '<div class="add"><div><div>' + esc(a.nome) + '</div><div class="min">' + brl(a.preco) + '</div></div>' +
+          return '<div class="add"><div><div>' + esc(a.nome) + '</div><div class="min">' + (a.de > a.preco ? '<span class="de">' + brl(a.de) + '</span>' : '') + brl(a.preco) + '</div></div>' +
             '<div class="qtd"><button type="button" data-a="menos" data-id="' + esc(a.id) + '" aria-label="Menos ' + esc(a.nome) + '"' + (q <= 0 ? ' disabled' : '') + '>−</button><b>' + q + '</b>' +
             '<button type="button" data-a="mais" data-id="' + esc(a.id) + '" aria-label="Mais ' + esc(a.nome) + '"' + (q >= it.max_qtd ? ' disabled' : '') + '>+</button></div></div>';
         }).join('') + '</div>';
