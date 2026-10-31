@@ -189,7 +189,7 @@
 
   async function agir(a, ds) {
     if (a === 'confirmar') {
-      return modalConfirmar('Confirmar o Pix?', 'Vai criar os eventos na Agenda Google e enviar o e-mail de confirmação para a cliente.', 'Confirmar Pix', false, async function () {
+      return modalConfirmar('Confirmar o Pix?', 'Vai criar os eventos na Agenda Google e enviar o e-mail de confirmação para a cliente (se ela informou e-mail).', 'Confirmar Pix', false, async function () {
         var r = await executar(function () { return chamar('adm_confirmar', { codigo: ds.cod }); });
         if (!r) return;
         P.dados.pendentes = await chamar('adm_pendentes');
