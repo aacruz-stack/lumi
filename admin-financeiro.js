@@ -55,9 +55,9 @@
   EXT.views.financeiro = viewFinanceiro;
 
   function seletorMes() {
-    return '<div class="linha" style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin:0 0 12px"><button type="button" class="btn-discreto" style="flex:0 0 auto;padding:8px 14px" data-fin="mes" data-n="-1" aria-label="Mês anterior">‹</button>' +
+    return '<div class="linha" style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin:0 0 12px"><button type="button" class="btn-discreto" style="width:auto;flex:0 0 auto;padding:8px 18px;font-size:1.3rem;line-height:1" data-fin="mes" data-n="-1" aria-label="Mês anterior">‹</button>' +
       '<div class="nome" style="text-align:center;flex:1">' + esc(mesNome(fin().mes)) + '</div>' +
-      '<button type="button" class="btn-discreto" style="flex:0 0 auto;padding:8px 14px" data-fin="mes" data-n="1" aria-label="Próximo mês">›</button></div>';
+      '<button type="button" class="btn-discreto" style="width:auto;flex:0 0 auto;padding:8px 18px;font-size:1.3rem;line-height:1" data-fin="mes" data-n="1" aria-label="Próximo mês">›</button></div>';
   }
 
   function bloco(rotulo, valor, cor) {
