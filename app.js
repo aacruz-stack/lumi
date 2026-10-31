@@ -218,16 +218,17 @@
   }
   function dadosOk() {
     var d = S.dados, fone = d.whats.replace(/\D/g, '');
-    return d.nome.trim().length >= 2 && (!S.item.mesmo_horario || d.nome2.trim().length >= 2) && (fone.length === 10 || fone.length === 11) && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email.trim());
+    return d.nome.trim().length >= 2 && (!S.item.mesmo_horario || d.nome2.trim().length >= 2) && (fone.length === 10 || fone.length === 11) && emailOk(d.email);
   }
+  function emailOk(v) { v = String(v || '').trim(); return v === '' || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
   function telaDados() {
     var d = S.dados, dupla = S.item.mesmo_horario;
     setHtml(etapasHtml() + '<div class="tela"><h2>Seus dados</h2><p class="lead">Para confirmar e avisar você sobre o agendamento.</p>' +
       '<label class="campo"><span>' + (dupla ? 'Seu nome' : 'Seu nome') + '</span><input type="text" data-f="nome" autocomplete="name" maxlength="80" placeholder="Como você se chama?" value="' + esc(d.nome) + '"></label>' +
       (dupla ? '<label class="campo"><span>Nome da sua amiga</span><input type="text" data-f="nome2" maxlength="80" placeholder="Quem vem com você?" value="' + esc(d.nome2) + '"></label>' : '') +
       '<label class="campo"><span>Seu WhatsApp</span><input type="tel" inputmode="numeric" data-f="whats" autocomplete="tel" placeholder="(11) 90000-0000" value="' + esc(d.whats) + '"></label>' +
-      '<label class="campo"><span>Seu e-mail</span><input type="email" data-f="email" autocomplete="email" maxlength="120" placeholder="voce@email.com" value="' + esc(d.email) + '"></label>' +
-      (S.primeira ? '<div class="msg info">Vamos conferir se é mesmo a sua primeira vez pelo WhatsApp e e-mail informados.</div>' : '') + erroHtml() +
+      '<label class="campo"><span>Seu e-mail (opcional)</span><input type="email" data-f="email" autocomplete="email" maxlength="120" placeholder="voce@email.com" value="' + esc(d.email) + '"></label>' +
+      (S.primeira ? '<div class="msg info">Vamos conferir se é mesmo a sua primeira vez pelo WhatsApp (e e-mail, se informado).</div>' : '') + erroHtml() +
       '<p class="aviso">Usamos seus dados apenas para o agendamento.</p>' +
       '<div class="acoes duas"><button type="button" class="btn-discreto" data-a="voltar">Voltar</button><button type="button" class="btn-primario" data-a="avancar2" id="btn-dados"' + (dadosOk() ? '' : ' disabled') + '>Continuar</button></div></div>');
   }
@@ -291,7 +292,7 @@
     var r = S.reserva, wpp = S.cat.whatsapp, confirmado = r.status === 'Confirmado';
     var msg = 'Oi! Sou ' + r.nome + '. Fiz o agendamento ' + r.codigo + ' (' + r.item_nome + ') e queria falar sobre ele.';
     setHtml(etapasHtml() + '<div class="tela"><div class="ok-grande">✦</div><h2 style="text-align:center">' + (confirmado ? 'Agendamento confirmado!' : 'Recebemos seu aviso!') + '</h2>' +
-      '<p class="lead" style="text-align:center">' + (confirmado ? 'Está tudo certo. Enviamos os detalhes por e-mail.' : 'Assim que a dona confirmar o Pix, você recebe a confirmação por e-mail.') + '</p>' +
+      '<p class="lead" style="text-align:center">' + (confirmado ? 'Está tudo certo. ' + (r.tem_email ? 'Enviamos os detalhes por e-mail.' : 'Qualquer dúvida, fale com a gente pelo WhatsApp.') : 'Assim que a dona confirmar o Pix, você recebe a confirmação ' + (r.tem_email ? 'por e-mail e WhatsApp.' : 'pelo WhatsApp.')) + '</p>' +
       '<div class="cartao"><div class="nome">' + esc(r.item_nome) + '</div>' + sessoesHtml(r.sessoes) +
       '<div class="min" style="margin-top:8px">Sinal ' + brl(r.sinal) + ' · Restante ' + brl(r.restante) + ' ao final da 1ª sessão</div>' +
       '<div class="min">Código da reserva: <b>' + esc(r.codigo) + '</b></div></div>' +

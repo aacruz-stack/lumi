@@ -167,6 +167,12 @@
     abrirModal('<h3 style="margin-bottom:8px">' + esc(titulo) + '</h3><p class="lead">' + esc(texto) + '</p><div class="acoes duas"><button type="button" class="btn-discreto" data-m="fechar">Voltar</button>' +
       '<button type="button" class="' + (perigo ? 'btn-perigo' : 'btn-primario') + '" data-m="ok" id="m-ok">' + esc(textoBtn) + '</button></div>');
   }
+  function avisoEmail(r, okMsg) {
+    if (r.email_enviado) return ['ok', okMsg];
+    if (r.email_motivo === 'sem_email') return ['erro', 'A cliente não informou e-mail. Use o botão do WhatsApp.'];
+    if (r.email_motivo === 'cota') return ['erro', 'E-mail não enviado (limite diário do Gmail atingido). Use o botão do WhatsApp.'];
+    return ['erro', 'E-mail não enviado, use o botão do WhatsApp.'];
+  }
   function modalAviso(titulo, linhas, waUrl) {
     abrirModal('<h3 style="margin-bottom:8px">' + esc(titulo) + '</h3>' + linhas.map(function (l) { return '<div class="msg ' + l[0] + '">' + esc(l[1]) + '</div>'; }).join('') +
       '<div class="acoes">' + (waUrl ? '<a class="btn-primario" target="_blank" rel="noopener" href="' + esc(waUrl) + '">Avisar no WhatsApp</a>' : '') + '<button type="button" class="btn-discreto" data-m="fechar">Fechar</button></div>');
@@ -187,7 +193,7 @@
         var r = await executar(function () { return chamar('adm_confirmar', { codigo: ds.cod }); });
         if (!r) return;
         P.dados.pendentes = await chamar('adm_pendentes');
-        var linhas = [['ok', 'Reserva confirmada!'], [r.email_enviado ? 'ok' : 'erro', r.email_enviado ? 'E-mail de confirmação enviado.' : 'Não consegui enviar o e-mail (cota do dia?). Avise pelo WhatsApp.']];
+        var linhas = [['ok', 'Reserva confirmada!'], avisoEmail(r, 'E-mail de confirmação enviado.')];
         if (r.aviso_agenda) linhas.push(['erro', r.aviso_agenda]);
         modalAviso('Confirmado ✨', linhas, r.wa_url);
       });
@@ -233,7 +239,7 @@
       var r = await chamar('adm_remarcar', { codigo: RM.cod, n: RM.n, data: RM.data, hora: RM.hora });
       P.dados.agenda = await chamar('adm_agenda', agParams());
       modalAviso('Remarcado ✨', [['ok', 'Novo horário: ' + dataBR(RM.data) + ' às ' + RM.hora + '. Reagendamentos usados: ' + r.reserva.reag_usados + ' de ' + r.reserva.reag_max + '.'],
-        [r.email_enviado ? 'ok' : 'erro', r.email_enviado ? 'E-mail enviado para a cliente.' : 'Não consegui enviar o e-mail. Avise pelo WhatsApp.']], r.wa_url);
+        avisoEmail(r, 'E-mail enviado para a cliente.')], r.wa_url);
     } catch (e) { RM.aviso = e.message; if (/senha|tentativas/i.test(e.message)) return telaLogin(e.message); modalRemarcar(); }
   }
 
