@@ -75,6 +75,10 @@
       h += '<div class="msg info"><b>Reservas já confirmadas fora do financeiro:</b> ' + d.importar.qtd + ' valor(es), somando ' + brl(d.importar.total) + '. ' +
         '<div class="acoes" style="margin-top:8px"><button type="button" class="btn-discreto" data-fin="importar">Ver e importar</button></div></div>';
     }
+    if (d.pendentes && d.pendentes.length) {
+      h += '<div class="msg info"><b>Pendente de confirmar:</b> ' + brl(d.a_receber) + ' (' + d.pendentes.length + ' lançamento' + (d.pendentes.length > 1 ? 's' : '') + '). Só conta como dinheiro recebido depois que você confirmar.</div>' +
+        d.pendentes.map(cardPendente).join('');
+    }
     h += bloco('Quanto entrou', brl(d.entradas), 'ok') + bloco('Quanto saiu', brl(d.saidas), 'erro') +
       bloco('Sobrou no mês', (d.resultado < 0 ? '− ' : '') + brl(Math.abs(d.resultado)), d.resultado < 0 ? 'erro' : 'ok');
     h += listaCats('De onde veio', d.por_categoria.entrada, 'Nada entrou neste mês ainda.');
@@ -83,16 +87,21 @@
     return h;
   }
 
+  function cardPendente(l) {
+    return '<div class="cartao"><div class="linha"><span class="nome" style="font-size:1.1rem">' + esc(l.categoria) + '</span><span class="preco">' + brl(l.valor) + '</span></div>' +
+      '<div class="min">' + esc(l.descricao) + ' · atendimento em ' + esc(dbr(l.data)) + '</div><div><span class="chip ouro">Pendente de confirmar</span></div>' +
+      '<div class="acoes"><button type="button" class="btn-primario" data-fin="confirmar" data-id="' + esc(l.id) + '">Confirmei, já recebi</button></div></div>';
+  }
   function viewLanc(d) {
     var h = '<div class="acoes"><button type="button" class="btn-primario" data-fin="novo">Novo lançamento</button></div>';
     if (!d.lancamentos.length) return h + '<div class="vazio">Nenhum lançamento neste mês. ✨</div>';
     return h + d.lancamentos.map(function (l) {
       var ent = l.tipo === 'entrada';
       return '<div class="cartao"><div class="linha"><span class="nome" style="font-size:1.1rem">' + esc(l.categoria) + '</span>' +
-        '<span class="preco" style="color:var(--' + (ent ? 'ok' : 'erro') + ')">' + (ent ? '+ ' : '− ') + brl(l.valor) + '</span></div>' +
+        '<span class="preco" style="color:var(--' + (l.pendente ? 'dourado-claro' : ent ? 'ok' : 'erro') + ')">' + (l.pendente ? '' : ent ? '+ ' : '− ') + brl(l.valor) + '</span></div>' +
         '<div class="min">' + esc(dbr(l.data)) + (l.descricao ? ' · ' + esc(l.descricao) : '') + '</div>' +
-        '<div>' + (l.origem === 'manual' ? '<span class="chip">Lançado por você</span>' : '<span class="chip ouro">Automático</span>') + '</div>' +
-        '<div class="acoes duas">' + (l.origem === 'manual' ? '<button type="button" class="btn-discreto" data-fin="editar" data-id="' + esc(l.id) + '">Editar</button>' : '<span></span>') +
+        '<div>' + (l.pendente ? '<span class="chip ouro">Pendente de confirmar</span>' : l.origem === 'manual' ? '<span class="chip">Lançado por você</span>' : '<span class="chip ouro">Automático</span>') + '</div>' +
+        '<div class="acoes duas">' + (l.pendente ? '<button type="button" class="btn-primario" data-fin="confirmar" data-id="' + esc(l.id) + '">Já recebi</button>' : l.origem === 'manual' ? '<button type="button" class="btn-discreto" data-fin="editar" data-id="' + esc(l.id) + '">Editar</button>' : '<span></span>') +
         '<button type="button" class="btn-perigo" data-fin="excluir" data-id="' + esc(l.id) + '">Excluir</button></div></div>';
     }).join('');
   }
@@ -179,6 +188,13 @@
       var l = fin().lancamentos.filter(function (x) { return x.id === t.dataset.id; })[0];
       A.modalConfirmar('Excluir lançamento?', (l && l.origem !== 'manual' ? 'Este lançamento foi feito automaticamente. ' : '') + 'Ele sai do resumo do mês.', 'Excluir', true, async function () {
         try { await chamar('adm_fin_remover', { id: t.dataset.id }); await recarregar('Lançamento excluído'); }
+        catch (e) { P.modal = null; P.erro = e.message; A.desenhar(); }
+      });
+      return true;
+    }
+    if (c === 'confirmar') {
+      A.modalConfirmar('Confirmar recebimento?', 'O valor passa a contar como dinheiro recebido neste mês e o restante da reserva fica marcado como pago.', 'Sim, já recebi', false, async function () {
+        try { await chamar('adm_fin_confirmar', { id: t.dataset.id }); await recarregar('Recebimento confirmado ✨'); }
         catch (e) { P.modal = null; P.erro = e.message; A.desenhar(); }
       });
       return true;

@@ -173,6 +173,12 @@
     if (r.email_motivo === 'cota') return ['erro', 'E-mail não enviado (limite diário do Gmail atingido). Use o botão do WhatsApp.'];
     return ['erro', 'E-mail não enviado, use o botão do WhatsApp.'];
   }
+  function modalRestante(i) {
+    abrirModal('<h3 style="margin-bottom:8px">Atendimento finalizado ✨</h3><p class="lead">' + esc(i.nome) + ': o restante de <b>' + brl(i.valor) + '</b> foi pago?</p>' +
+      '<p class="min" style="margin-bottom:12px">Se ainda não recebeu, ele fica como “pendente de confirmar” no Financeiro, sem contar como dinheiro recebido.</p>' +
+      '<div class="acoes duas"><button type="button" class="btn-discreto" data-m="fechar">Ainda não</button>' +
+      '<button type="button" class="btn-primario" data-act="restante-sim" data-cod="' + esc(i.codigo) + '" id="m-ok">Sim, recebi</button></div>');
+  }
   function modalAviso(titulo, linhas, waUrl) {
     abrirModal('<h3 style="margin-bottom:8px">' + esc(titulo) + '</h3>' + linhas.map(function (l) { return '<div class="msg ' + l[0] + '">' + esc(l[1]) + '</div>'; }).join('') +
       '<div class="acoes">' + (waUrl ? '<a class="btn-primario" target="_blank" rel="noopener" href="' + esc(waUrl) + '">Avisar no WhatsApp</a>' : '') + '<button type="button" class="btn-discreto" data-m="fechar">Fechar</button></div>');
@@ -204,7 +210,8 @@
         if (r) { P.modal = null; abrir(P.aba); }
       });
     }
-    if (a === 'realizada') { var r1 = await executar(function () { return chamar('adm_sessao_realizada', { codigo: ds.cod, n: +ds.n }); }, 'Sessão marcada como realizada'); if (r1) { abrir('pacotes'); var av = r1.estoque_aviso || (r1.estoque_alertas && r1.estoque_alertas.length ? 'Hora de repor: ' + r1.estoque_alertas.join(', ') : ''); if (av) setTimeout(function () { toast(av, 8000); }, 3000); } return; }
+    if (a === 'realizada') { var r1 = await executar(function () { return chamar('adm_sessao_realizada', { codigo: ds.cod, n: +ds.n }); }, 'Sessão marcada como realizada'); if (r1) { await abrir('pacotes'); var av = r1.estoque_aviso || (r1.estoque_alertas && r1.estoque_alertas.length ? 'Hora de repor: ' + r1.estoque_alertas.join(', ') : ''); if (av) setTimeout(function () { toast(av, 8000); }, 3000); if (r1.restante_pendente) modalRestante(r1.restante_pendente); } return; }
+    if (a === 'restante-sim') { var r4 = await executar(function () { return chamar('adm_restante_pago', { codigo: ds.cod }); }, 'Restante confirmado ✨'); if (r4) { P.modal = null; abrir('pacotes'); } return; }
     if (a === 'restante') { var r2 = await executar(function () { return chamar('adm_restante_pago', { codigo: ds.cod, desfazer: !!ds.undo }); }, ds.undo ? 'Desfeito' : 'Restante marcado como pago'); if (r2) abrir('pacotes'); return; }
     if (a === 'desbloquear') { var r3 = await executar(function () { return chamar('adm_desbloquear', { id: ds.id }); }, 'Bloqueio removido'); if (r3) abrir('bloqueios'); return; }
     if (a === 'remarcar') return abrirRemarcar(ds);
