@@ -3,7 +3,7 @@
   'use strict';
   var root = document.getElementById('painel');
   var P = { senha: '', aba: 'pendentes', dados: {}, carregando: false, erro: '', agFiltro: 'hoje', agBusca: '', pacFiltro: 'abertos', modal: null };
-  var ABAS = [['pendentes', 'Pendentes'], ['agenda', 'Agenda'], ['pacotes', 'Pacotes'], ['bloqueios', 'Bloqueios'], ['catalogo', 'Catálogo'], ['ajustes', 'Ajustes']];
+  var ABAS = [['pendentes', 'Pendentes'], ['agenda', 'Agenda'], ['pacotes', 'Pacotes'], ['bloqueios', 'Bloqueios'], ['estoque', 'Estoque'], ['catalogo', 'Catálogo'], ['ajustes', 'Ajustes']];
   var EXT = { loaders: {}, views: {}, click: null, submit: null };
 
   function chamar(action, body) { return Api.post(action, Object.assign({ senha: P.senha }, body || {})); }
@@ -204,7 +204,7 @@
         if (r) { P.modal = null; abrir(P.aba); }
       });
     }
-    if (a === 'realizada') { var r1 = await executar(function () { return chamar('adm_sessao_realizada', { codigo: ds.cod, n: +ds.n }); }, 'Sessão marcada como realizada'); if (r1) abrir('pacotes'); return; }
+    if (a === 'realizada') { var r1 = await executar(function () { return chamar('adm_sessao_realizada', { codigo: ds.cod, n: +ds.n }); }, 'Sessão marcada como realizada'); if (r1) { abrir('pacotes'); var av = r1.estoque_aviso || (r1.estoque_alertas && r1.estoque_alertas.length ? 'Hora de repor: ' + r1.estoque_alertas.join(', ') : ''); if (av) setTimeout(function () { toast(av, 8000); }, 3000); } return; }
     if (a === 'restante') { var r2 = await executar(function () { return chamar('adm_restante_pago', { codigo: ds.cod, desfazer: !!ds.undo }); }, ds.undo ? 'Desfeito' : 'Restante marcado como pago'); if (r2) abrir('pacotes'); return; }
     if (a === 'desbloquear') { var r3 = await executar(function () { return chamar('adm_desbloquear', { id: ds.id }); }, 'Bloqueio removido'); if (r3) abrir('bloqueios'); return; }
     if (a === 'remarcar') return abrirRemarcar(ds);

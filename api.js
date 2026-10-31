@@ -63,9 +63,9 @@
   window.difDias = function (a, b) { return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000); };
   window.hm = function (s) { var p = s.split(':'); return +p[0] * 60 + +p[1]; };
   window.fmtHm = function (m) { return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2); };
-  window.toast = function (msg) {
+  window.toast = function (msg, ms) {
     var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; t.setAttribute('role', 'status');
-    document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2800);
+    document.body.appendChild(t); setTimeout(function () { t.remove(); }, ms || 2800);
   };
   window.guardar = function (k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   window.ler = function (k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
