@@ -3,7 +3,7 @@
   'use strict';
   var root = document.getElementById('painel');
   var P = { senha: '', aba: 'pendentes', dados: {}, carregando: false, erro: '', agFiltro: 'hoje', agBusca: '', pacFiltro: 'abertos', modal: null };
-  var ABAS = [['pendentes', 'Pendentes'], ['agenda', 'Agenda'], ['pacotes', 'Pacotes'], ['bloqueios', 'Bloqueios'], ['estoque', 'Estoque'], ['financeiro', 'Financeiro'], ['catalogo', 'Catálogo'], ['ajustes', 'Ajustes']];
+  var ABAS = [['pendentes', 'Pendentes'], ['caixa', 'Caixa'], ['agenda', 'Agenda'], ['pacotes', 'Pacotes'], ['bloqueios', 'Bloqueios'], ['estoque', 'Estoque'], ['financeiro', 'Financeiro'], ['catalogo', 'Catálogo'], ['ajustes', 'Ajustes']];
   var EXT = { loaders: {}, views: {}, click: null, submit: null };
 
   function chamar(action, body) { return Api.post(action, Object.assign({ senha: P.senha }, body || {})); }

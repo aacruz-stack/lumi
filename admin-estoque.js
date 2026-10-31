@@ -8,7 +8,7 @@
   var E = { sub: 'insumos' }, FORM = null;
   var SUBS = [['insumos', 'Insumos'], ['fichas', 'Fichas técnicas'], ['movs', 'Movimentos']];
   var TIPOS = { sessao: 'Sessões', pacote: 'Pacotes', adicional: 'Adicionais' };
-  var MOV = { entrada: 'Compra / entrada', saida: 'Saída', ajuste: 'Contagem', baixa_sessao: 'Sessão realizada', estorno_sessao: 'Sessão desfeita' };
+  var MOV = { entrada: 'Compra / entrada', saida: 'Saída', ajuste: 'Contagem', baixa_sessao: 'Sessão realizada', estorno_sessao: 'Sessão desfeita', baixa_venda: 'Venda no local', estorno_venda: 'Venda desfeita' };
   // como a dona mede: [valor guardado, rótulo]. Quem digita em kg ou litro é convertido sozinho.
   var MEDIDAS = [['g', 'Gramas (g)'], ['ml', 'Mililitros (ml)'], ['un', 'Unidades (un)'], ['outra', 'Outra...']];
   var FAMILIA = { g: [['g', 1], ['kg', 1000]], ml: [['ml', 1], ['litro', 1000]] };
