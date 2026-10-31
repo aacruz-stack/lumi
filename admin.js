@@ -2,11 +2,11 @@
 (function () {
   'use strict';
   var root = document.getElementById('painel');
-  var P = { senha: '', aba: 'pendentes', dados: {}, carregando: false, erro: '', agFiltro: 'hoje', agBusca: '', pacFiltro: 'abertos', modal: null };
+  var P = { senha: '', token: '', aba: 'pendentes', dados: {}, carregando: false, erro: '', agFiltro: 'hoje', agBusca: '', pacFiltro: 'abertos', modal: null };
   var ABAS = [['pendentes', 'Pendentes'], ['caixa', 'Caixa'], ['agenda', 'Agenda'], ['pacotes', 'Pacotes'], ['bloqueios', 'Bloqueios'], ['estoque', 'Estoque'], ['financeiro', 'Financeiro'], ['catalogo', 'Catálogo'], ['ajustes', 'Ajustes']];
   var EXT = { loaders: {}, views: {}, click: null, submit: null };
 
-  function chamar(action, body) { return Api.post(action, Object.assign({ senha: P.senha }, body || {})); }
+  function chamar(action, body) { return Api.post(action, Object.assign({ senha: P.senha, token: P.token }, body || {})); }
   function hojeLocal() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function fone(f) { f = String(f || ''); var d = f.replace(/^55/, ''); return d.length === 11 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7) : d.length === 10 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6) : f; }
   function zap(f) { return 'https://wa.me/' + String(f).replace(/\D/g, ''); }
@@ -23,11 +23,11 @@
       e.preventDefault();
       var b = document.getElementById('btn-login'); b.disabled = true; b.textContent = 'Entrando...';
       P.senha = document.getElementById('senha').value;
-      try { await chamar('adm_ping'); try { sessionStorage.setItem('lumi_adm', P.senha); } catch (x) {} abrir('pendentes'); }
-      catch (err) { P.senha = ''; telaLogin(err.message); }
+      try { var rp = await chamar('adm_ping'); P.token = (rp && rp.token) || ''; try { sessionStorage.setItem('lumi_adm', P.senha); sessionStorage.setItem('lumi_adm_tok', P.token); } catch (x) {} abrir('pendentes'); }
+      catch (err) { P.senha = ''; P.token = ''; telaLogin(err.message); }
     };
   }
-  function sair() { P.senha = ''; try { sessionStorage.removeItem('lumi_adm'); } catch (x) {} telaLogin(); }
+  function sair() { P.senha = ''; P.token = ''; try { sessionStorage.removeItem('lumi_adm'); sessionStorage.removeItem('lumi_adm_tok'); } catch (x) {} telaLogin(); }
 
   /* ---------- moldura ---------- */
   function moldura(corpo) {
@@ -182,9 +182,9 @@
       '<div class="acoes duas"><button type="button" class="btn-discreto" data-m="fechar">Ainda não</button>' +
       '<button type="button" class="btn-primario" data-act="restante-sim" data-cod="' + esc(i.codigo) + '" id="m-ok">Sim, recebi</button></div>');
   }
-  function modalAviso(titulo, linhas, waUrl) {
+  function modalAviso(titulo, linhas, waUrl, extra) {
     abrirModal('<h3 style="margin-bottom:8px">' + esc(titulo) + '</h3>' + linhas.map(function (l) { return '<div class="msg ' + l[0] + '">' + esc(l[1]) + '</div>'; }).join('') +
-      '<div class="acoes">' + (waUrl ? '<a class="btn-primario" target="_blank" rel="noopener" href="' + esc(waUrl) + '">Avisar no WhatsApp</a>' : '') + '<button type="button" class="btn-discreto" data-m="fechar">Fechar</button></div>');
+      '<div class="acoes">' + (waUrl ? '<a class="btn-primario" target="_blank" rel="noopener" href="' + esc(waUrl) + '">Avisar no WhatsApp</a>' : '') + (extra || '') + '<button type="button" class="btn-discreto" data-m="fechar">Fechar</button></div>');
   }
 
   async function executar(fn, okMsg) {
@@ -204,7 +204,7 @@
         P.dados.pendentes = await chamar('adm_pendentes');
         var linhas = [['ok', 'Reserva confirmada!'], avisoEmail(r, 'E-mail de confirmação enviado.')];
         if (r.aviso_agenda) linhas.push(['erro', r.aviso_agenda]);
-        modalAviso('Confirmado ✨', linhas, r.wa_url);
+        modalAviso('Confirmado ✨', linhas, r.wa_url, r.aviso_agenda ? '<button type="button" class="btn-discreto" data-act="agenda-refazer" data-cod="' + esc(ds.cod) + '" id="m-ok">Tentar criar na Agenda de novo</button>' : '');
       });
     }
     if (a === 'cancelar') {
@@ -214,6 +214,7 @@
       });
     }
     if (a === 'realizada') { var r1 = await executar(function () { return chamar('adm_sessao_realizada', { codigo: ds.cod, n: +ds.n }); }, 'Sessão marcada como realizada'); if (r1) { await abrir('pacotes'); var av = r1.estoque_aviso || (r1.estoque_alertas && r1.estoque_alertas.length ? 'Hora de repor: ' + r1.estoque_alertas.join(', ') : ''); if (av) setTimeout(function () { toast(av, 8000); }, 3000); if (r1.restante_pendente) modalRestante(r1.restante_pendente); } return; }
+    if (a === 'agenda-refazer') { var r5 = await executar(function () { return chamar('adm_agenda_refazer', { codigo: ds.cod }); }, 'Eventos criados na Agenda ✨'); if (r5) { P.modal = null; abrir(P.aba); } return; }
     if (a === 'restante-sim') { var r4 = await executar(function () { return chamar('adm_restante_pago', { codigo: ds.cod, forma: (document.getElementById('m-forma') || {}).value || '' }); }, 'Restante confirmado ✨'); if (r4) { P.modal = null; abrir('pacotes'); } return; }
     if (a === 'restante') { var r2 = await executar(function () { return chamar('adm_restante_pago', { codigo: ds.cod, desfazer: !!ds.undo }); }, ds.undo ? 'Desfeito' : 'Restante marcado como pago'); if (r2) abrir('pacotes'); return; }
     if (a === 'desbloquear') { var r3 = await executar(function () { return chamar('adm_desbloquear', { id: ds.id }); }, 'Bloqueio removido'); if (r3) abrir('bloqueios'); return; }
@@ -286,7 +287,7 @@
     hojeLocal: hojeLocal, telaLogin: telaLogin };
 
   /* ---------- inicio ---------- */
-  var salva = null; try { salva = sessionStorage.getItem('lumi_adm'); } catch (e) {}
-  if (salva) { P.senha = salva; chamar('adm_ping').then(function () { abrir('pendentes'); }, function (e) { P.senha = ''; telaLogin(/senha|tentativas/i.test(e.message) ? e.message : ''); }); }
+  var salva = null; try { salva = sessionStorage.getItem('lumi_adm'); P.token = sessionStorage.getItem('lumi_adm_tok') || ''; } catch (e) {}
+  if (salva) { P.senha = salva; chamar('adm_ping').then(function (rp) { if (rp && rp.token) { P.token = rp.token; try { sessionStorage.setItem('lumi_adm_tok', P.token); } catch (x) {} } abrir('pendentes'); }, function (e) { P.senha = ''; P.token = ''; telaLogin(/senha|tentativas/i.test(e.message) ? e.message : ''); }); }
   else telaLogin();
 })();

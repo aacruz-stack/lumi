@@ -188,10 +188,10 @@
 
   /* ---------- aba Ajustes ---------- */
   function horarioCampos(k, v) {
-    var multi = /[,;]/.test(v), m = /^(\d{2}:\d{2})-(\d{2}:\d{2})$/.exec(v.replace(/\s/g, ''));
+    var multi = /[,;]/.test(v), m = /^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/.exec(v.replace(/\s/g, '')), pad = function (h) { return h.length === 4 ? '0' + h : h; };
     if (multi) return '<div class="min">' + esc(v) + ' (vários períodos: edite na planilha)</div>';
     return '<div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:8px;align-items:center"><label class="check" style="margin:0"><input type="checkbox" id="h-' + k + '-on"' + (v ? ' checked' : '') + '><span>Aberto</span></label>' +
-      '<input type="time" id="h-' + k + '-a" value="' + (m ? m[1] : '09:00') + '"><input type="time" id="h-' + k + '-b" value="' + (m ? m[2] : '22:00') + '"></div>';
+      '<input type="time" id="h-' + k + '-a" value="' + (m ? pad(m[1]) : '09:00') + '"><input type="time" id="h-' + k + '-b" value="' + (m ? pad(m[2]) : '22:00') + '"></div>';
   }
   function viewAjustes() {
     var v = (P.dados.config || { valores: {} }).valores;

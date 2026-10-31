@@ -17,6 +17,7 @@
   function dec(v) {
     v = String(v === undefined || v === null ? '' : v).trim();
     if (v === '') return NaN;
+    if (/^[1-9]\d{0,2}(\.\d{3})+(,\d+)?$/.test(v)) v = v.replace(/\./g, ''); // 1.200 = mil e duzentos
     var n = parseFloat(/,/.test(v) ? v.replace(/\./g, '').replace(',', '.') : v);
     return isFinite(n) ? n : NaN;
   }
@@ -156,7 +157,7 @@
   async function finalizar() {
     if (C.enviando) return;
     var tot = totC(); if (tot <= 0) return;
-    var rec = C.recAuto ? tot / 100 : dec(C.recebido);
+    var rec = C.recAuto ? tot / 100 : dec(C.recebido), totalEnviado = tot;
     if (isNaN(rec)) { toast('Digite quanto a cliente pagou agora.'); return; }
     C.enviando = true; atualizaTotais();
     var b = document.getElementById('cx-fin'); if (b) b.textContent = 'Registrando...';
@@ -165,6 +166,11 @@
         token: C.token, forma: C.forma, cliente: C.cliente, desconto: C.desconto, recebido: String(rec),
         itens: C.itens.map(function (l) { return l.t === 'catalogo' ? { tipo: 'catalogo', id: l.id, qtd: l.qtd } : l.t === 'minutos' ? { tipo: 'minutos', minutos: l.min } : { tipo: 'livre', nome: l.nome, valor: l.preco }; })
       });
+      if (r.repetida && cent(r.total) !== totalEnviado) { // o servidor ja tinha uma venda com este envio: a de agora NAO foi gravada
+        C.token = novoToken(); C.enviando = false;
+        A.abrirModal('<h3 style="margin-bottom:8px">Atenção ✋</h3><div class="msg erro">Uma venda de <b>' + brl(r.total) + '</b> já tinha sido registrada neste envio (a conexão tinha caído). <b>A venda que está na tela NÃO foi gravada.</b></div><p class="min">Confira em "Vendas do dia". Se a venda antiga estiver errada, desfaça; depois finalize esta de novo.</p><div class="acoes"><button type="button" class="btn-primario" data-m="fechar">Entendi</button></div>');
+        return;
+      }
       C.itens = []; C.desconto = ''; C.recebido = ''; C.recAuto = true; C.cliente = ''; C.token = novoToken(); C.enviando = false;
       var linhas = '<div class="msg ok">Venda de <b>' + brl(r.total) + '</b> registrada e lançada no Financeiro.</div>';
       if (r.resto > 0) linhas += '<div class="msg info">Faltam ' + brl(r.resto) + ': ficou como pendente de confirmar no Financeiro.</div>';
@@ -175,7 +181,7 @@
     } catch (e) {
       C.enviando = false;
       if (/senha|tentativas/i.test(e.message)) return A.telaLogin(e.message);
-      P.erro = e.message; A.desenhar(); atualizaTotais(); window.scrollTo({ top: 0 });
+      P.erro = e.message + (e.negocio ? '' : ' Não tenho certeza se a venda foi registrada: confira em "Vendas do dia" antes de tentar de novo.'); A.desenhar(); atualizaTotais(); window.scrollTo({ top: 0 });
     }
   }
 

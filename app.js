@@ -10,6 +10,10 @@
     reserva: null, enviando: false, erro: '', pag: 'Pix'
   };
   var timer = null;
+  function novoToken() {
+    try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+    return 'lm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  }
 
   /* ---------- calculos ---------- */
   function picks() { return S.item.mesmo_horario ? 1 : S.item.sessoes; }
@@ -122,9 +126,9 @@
         item: S.item.id, mes: S.mes, primeira: S.primeira ? '1' : '0', extra: S.ativo === 0 ? '1' : '0',
         adds: listaAdds().map(function (a) { return a.id + ':' + a.qtd; }).join(',')
       });
-      cacheDias[k] = r.days; S.dias = r.days;
-    } catch (e) { S.erroMes = e.message; S.dias = {}; }
-    S.carregandoMes = false;
+      cacheDias[k] = r.days; if (chaveCache(S.mes, S.ativo) === k) S.dias = r.days; // resposta atrasada de outro mes nao sobrescreve o calendario atual
+    } catch (e) { if (chaveCache(S.mes, S.ativo) === k) { S.erroMes = e.message; S.dias = {}; } }
+    if (chaveCache(S.mes, S.ativo) === k) S.carregandoMes = false;
   }
   function horasDoDia(ds) {
     var gap = S.cat.intervalo_min, dur = durSessao(S.ativo), base = S.dias[ds] || [];
@@ -379,7 +383,7 @@
         var r = await Api.post('criar', {
           item: S.item.id, adicionais: listaAdds().map(function (a) { return { id: a.id, qtd: a.qtd }; }),
           nome: S.dados.nome, nome2: S.dados.nome2, whatsapp: S.dados.whats, email: S.dados.email, primeira: S.primeira,
-          slots: S.slots, aceite_regras: S.ac1, aceite_restricoes: S.ac2, pagamento: S.pag
+          slots: S.slots, aceite_regras: S.ac1, aceite_restricoes: S.ac2, pagamento: S.pag, token: (S.tokCriar = S.tokCriar || novoToken())
         });
         S.reserva = r; guardar('lumi_res', { codigo: r.codigo, whats: S.dados.whats, t: Date.now() });
         S.enviando = false; irPara(S.pag === 'Pix' ? 3 : 4);
@@ -406,7 +410,7 @@
     },
     novo: function () {
       guardar('lumi_res', null);
-      S.item = null; S.adds = {}; S.slots = []; S.reserva = null; S.ac1 = S.ac2 = false; S.primeira = false; S.pag = 'Pix'; cacheDias = {};
+      S.item = null; S.adds = {}; S.slots = []; S.reserva = null; S.ac1 = S.ac2 = false; S.primeira = false; S.pag = 'Pix'; S.tokCriar = null; cacheDias = {};
       irPara(0);
     }
   };

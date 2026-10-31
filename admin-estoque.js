@@ -16,7 +16,13 @@
 
   function val(id) { var e = document.getElementById(id); return e ? e.value : ''; }
   function chk(id) { var e = document.getElementById(id); return !!(e && e.checked); }
-  function dec(v) { var n = parseFloat(String(v === undefined || v === null ? '' : v).replace(/\./g, function (m, i, s) { return /,/.test(s) ? '' : '.'; }).replace(',', '.')); return isFinite(n) ? n : NaN; }
+  function dec(v) {
+    v = String(v === undefined || v === null ? '' : v).trim();
+    if (v === '') return NaN;
+    if (/^[1-9]\d{0,2}(\.\d{3})+(,\d+)?$/.test(v)) v = v.replace(/\./g, ''); // 1.200 = mil e duzentos
+    var n = parseFloat(/,/.test(v) ? v.replace(/\./g, '').replace(',', '.') : v);
+    return isFinite(n) ? n : NaN;
+  }
   function num(v) { return String(Math.round(Number(v) * 1000) / 1000).replace('.', ','); }
   function dinheiro(v) { var n = Number(v); var t = n >= 1 ? n.toFixed(2) : String(Math.round(n * 10000) / 10000); if (n < 1 && t.indexOf('.') < 0) t += '.00'; var p = t.split('.'); if (p[1] && p[1].length < 2) p[1] += '0'; return 'R$ ' + p.join(','); }
   function qtdBonita(q, un) { // 1500 g -> "1,5 kg (1500 g)"
@@ -111,7 +117,7 @@
     return h + (completo ? '<div class="min" style="margin-top:4px">Gasto de material por sessão: <b>' + dinheiro(custo) + '</b></div>' : '');
   }
   function viewFichas(d) {
-    var h = '<p class="min" style="margin-bottom:10px">Quanto de cada insumo uma sessão gasta. O estoque desce sozinho quando você marca a sessão como realizada. Nos adicionais, desce junto com a 1ª sessão da reserva.</p>';
+    var h = '<p class="min" style="margin-bottom:10px">Quanto de cada insumo uma sessão gasta. O estoque desce sozinho quando você marca a sessão como realizada. Nos adicionais, desce junto com a 1ª sessão da reserva. Nos pacotes, o material dos adicionais que já vêm inclusos (ex.: banho de lua no Mina VIP) também desce junto com a 1ª sessão: monte a ficha desses adicionais e não repita esse material na ficha do pacote.</p>';
     if (!d.insumos.length) return h + '<div class="vazio">Cadastre os insumos primeiro, na aba Insumos.</div>';
     ['sessao', 'pacote', 'adicional'].forEach(function (tipo) {
       var lista = d.itens.filter(function (i) { return i.tipo === tipo; });
