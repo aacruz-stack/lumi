@@ -7,7 +7,7 @@
     cat: null, step: 0, aba: 'sessoes', item: null, adds: {}, primeira: false,
     slots: [], ativo: 0, mes: null, dias: {}, diaSel: null, carregandoMes: false, erroMes: '',
     dados: { nome: '', nome2: '', whats: '', email: '' }, ac1: false, ac2: false,
-    reserva: null, enviando: false, erro: ''
+    reserva: null, enviando: false, erro: '', pag: 'Pix'
   };
   var timer = null;
 
@@ -239,6 +239,14 @@
       return '<li>✦ ' + (lista.length > 1 ? 'Sessão ' + (s.n || i + 1) + ': ' : '') + esc(dataBR(s.data) + ' às ' + (s.hora || s.inicio)) + '</li>';
     }).join('') + '</ul>';
   }
+  var PAGS = [['Pix', 'Pix', 'Sinal de [SINAL] agora e o restante no atendimento'], ['Cartão de débito', 'Débito', 'Pagar no local'], ['Cartão de crédito', 'Crédito', 'Pagar no local'], ['Dinheiro', 'Dinheiro', 'Pagar no local']];
+  function pagamentoHtml() {
+    var c = calc();
+    return '<div class="cartao"><h3 style="margin-bottom:8px">Como você prefere pagar?</h3><div style="display:grid;gap:8px">' + PAGS.map(function (p) {
+      return '<button type="button" class="cartao' + (S.pag === p[0] ? ' sel' : '') + '" data-a="pag" data-v="' + esc(p[0]) + '" style="margin:0"><div class="nome" style="font-size:1.15rem">' + p[1] + '</div><div class="min">' + p[2].replace('[SINAL]', brl(c.sinal)) + '</div></button>';
+    }).join('') + '</div></div>';
+  }
+  function totaisLocalHtml(c) { return '<div class="totais"><div><span>Total</span><span>' + brl(c.total) + '</span></div><div class="destaque"><span>A pagar no atendimento</span><span>' + brl(c.total) + '</span></div></div>'; }
   function telaResumo() {
     var c = calc(), it = S.item, h = etapasHtml() + '<div class="tela"><h2>Confirme seu pedido</h2>' + erroHtml();
     h += '<div class="cartao"><div class="linha"><span class="nome">' + esc(it.nome) + '</span><span class="preco">' + brl(it.preco) + '</span></div>' +
@@ -246,14 +254,14 @@
       '<div style="margin-top:8px">' + esc(S.dados.nome) + (it.mesmo_horario ? ' e ' + esc(S.dados.nome2) : '') + '</div>' +
       (it.mesmo_horario ? '<div class="min">As duas no mesmo horário</div>' : '') +
       sessoesHtml(S.slots) + '</div>';
-    h += '<div class="totais"><div><span>Total</span><span>' + brl(c.total) + '</span></div>' +
+    h += pagamentoHtml() + (S.pag !== 'Pix' ? totaisLocalHtml(c) : '<div class="totais"><div><span>Total</span><span>' + brl(c.total) + '</span></div>' +
       '<div class="destaque"><span>Sinal a pagar agora (' + S.cat.percentual_sinal + '%)</span><span>' + brl(c.sinal) + '</span></div>' +
-      '<div><span>Restante, ao final da 1ª sessão</span><span>' + brl(c.restante) + '</span></div></div>';
+      '<div><span>Restante, ao final da 1ª sessão</span><span>' + brl(c.restante) + '</span></div></div>');
     h += '<div class="cartao"><h3 style="margin-bottom:8px">Regras</h3><ul class="regras">' + it.regras.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></div>';
     h += '<label class="check"><input type="checkbox" data-a="ac1"' + (S.ac1 ? ' checked' : '') + '><span>Li e concordo com as regras</span></label>' +
       '<label class="check"><input type="checkbox" data-a="ac2"' + (S.ac2 ? ' checked' : '') + '><span>Declaro que não me enquadro nas restrições de atendimento</span></label>';
     h += '<div class="acoes duas"><button type="button" class="btn-discreto" data-a="voltar"' + (S.enviando ? ' disabled' : '') + '>Voltar</button>' +
-      '<button type="button" class="btn-primario" id="btn-pix" data-a="gerarpix"' + (S.ac1 && S.ac2 && !S.enviando ? '' : ' disabled') + '>' + (S.enviando ? 'Reservando...' : 'Ver Pix') + '</button></div></div>';
+      '<button type="button" class="btn-primario" id="btn-pix" data-a="gerarpix"' + (S.ac1 && S.ac2 && !S.enviando ? '' : ' disabled') + '>' + (S.enviando ? 'Reservando...' : (S.pag === 'Pix' ? 'Ver Pix' : 'Reservar')) + '</button></div></div>';
     setHtml(h);
   }
 
@@ -291,10 +299,10 @@
   function telaFinal() {
     var r = S.reserva, wpp = S.cat.whatsapp, confirmado = r.status === 'Confirmado';
     var msg = 'Oi! Sou ' + r.nome + '. Fiz o agendamento ' + r.codigo + ' (' + r.item_nome + ') e queria falar sobre ele.';
-    setHtml(etapasHtml() + '<div class="tela"><div class="ok-grande">✦</div><h2 style="text-align:center">' + (confirmado ? 'Agendamento confirmado!' : 'Recebemos seu aviso!') + '</h2>' +
-      '<p class="lead" style="text-align:center">' + (confirmado ? 'Está tudo certo. ' + (r.tem_email ? 'Enviamos os detalhes por e-mail.' : 'Qualquer dúvida, fale com a gente pelo WhatsApp.') : 'Assim que a dona confirmar o Pix, você recebe a confirmação ' + (r.tem_email ? 'por e-mail e WhatsApp.' : 'pelo WhatsApp.')) + '</p>' +
+    setHtml(etapasHtml() + '<div class="tela"><div class="ok-grande">✦</div><h2 style="text-align:center">' + (confirmado ? 'Agendamento confirmado!' : (r.pagamento_local ? 'Reserva recebida!' : 'Recebemos seu aviso!')) + '</h2>' +
+      '<p class="lead" style="text-align:center">' + (confirmado ? 'Está tudo certo. ' + (r.tem_email ? 'Enviamos os detalhes por e-mail.' : 'Qualquer dúvida, fale com a gente pelo WhatsApp.') : (r.pagamento_local ? 'Assim que a reserva for aprovada, você recebe a confirmação ' : 'Assim que a dona confirmar o Pix, você recebe a confirmação ') + (r.tem_email ? 'por e-mail e WhatsApp.' : 'pelo WhatsApp.')) + '</p>' +
       '<div class="cartao"><div class="nome">' + esc(r.item_nome) + '</div>' + sessoesHtml(r.sessoes) +
-      '<div class="min" style="margin-top:8px">Sinal ' + brl(r.sinal) + ' · Restante ' + brl(r.restante) + ' ao final da 1ª sessão</div>' +
+      '<div class="min" style="margin-top:8px">' + (r.pagamento_local ? 'Pagamento no local (' + esc(r.pagamento) + '): ' + brl(r.total) : 'Sinal ' + brl(r.sinal) + ' · Restante ' + brl(r.restante) + ' ao final da 1ª sessão') + '</div>' +
       '<div class="min">Código da reserva: <b>' + esc(r.codigo) + '</b></div></div>' +
       '<div class="acoes">' + (wpp ? '<a class="btn-primario" target="_blank" rel="noopener" href="https://wa.me/' + wpp + '?text=' + encodeURIComponent(msg) + '">Falar no WhatsApp</a>' : '') +
       '<button type="button" class="btn-discreto" data-a="novo">Fazer outro agendamento</button></div></div>');
@@ -363,6 +371,7 @@
     ac1: function (d, ev) { S.ac1 = ev.target.checked; atualizaBtnPix(); },
     ac2: function (d, ev) { S.ac2 = ev.target.checked; atualizaBtnPix(); },
     voltar: function () { irPara(Math.max(0, S.step - 1)); },
+    pag: function (d) { if (S.enviando) return; S.pag = d.v; telaResumo(); },
     gerarpix: async function () {
       if (!(S.ac1 && S.ac2) || S.enviando) return;
       S.enviando = true; S.erro = ''; telaResumo();
@@ -370,10 +379,10 @@
         var r = await Api.post('criar', {
           item: S.item.id, adicionais: listaAdds().map(function (a) { return { id: a.id, qtd: a.qtd }; }),
           nome: S.dados.nome, nome2: S.dados.nome2, whatsapp: S.dados.whats, email: S.dados.email, primeira: S.primeira,
-          slots: S.slots, aceite_regras: S.ac1, aceite_restricoes: S.ac2
+          slots: S.slots, aceite_regras: S.ac1, aceite_restricoes: S.ac2, pagamento: S.pag
         });
         S.reserva = r; guardar('lumi_res', { codigo: r.codigo, whats: S.dados.whats, t: Date.now() });
-        S.enviando = false; irPara(3);
+        S.enviando = false; irPara(S.pag === 'Pix' ? 3 : 4);
       } catch (e) {
         S.enviando = false; S.erro = e.message; telaResumo();
         if (/ocupado|intervalo|validade|horário/i.test(e.message)) {
@@ -397,7 +406,7 @@
     },
     novo: function () {
       guardar('lumi_res', null);
-      S.item = null; S.adds = {}; S.slots = []; S.reserva = null; S.ac1 = S.ac2 = false; S.primeira = false; cacheDias = {};
+      S.item = null; S.adds = {}; S.slots = []; S.reserva = null; S.ac1 = S.ac2 = false; S.primeira = false; S.pag = 'Pix'; cacheDias = {};
       irPara(0);
     }
   };

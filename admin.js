@@ -66,18 +66,18 @@
     }).join('') + '</ul>';
   }
   function cardReserva(r, botoes) {
-    return '<div class="cartao' + (r.vip ? ' vip' : '') + '"><div class="card-linha"><span class="nome">' + esc(r.nome) + (r.nome2 ? ' e ' + esc(r.nome2) : '') + '</span><span class="preco">' + brl(r.sinal) + '</span></div>' +
-      '<div>' + esc(r.item_nome) + (r.vip ? ' <span class="chip ouro">VIP</span>' : '') + '</div>' +
-      '<div class="min">Total ' + brl(r.total) + ' · Sinal ' + brl(r.sinal) + ' · Restante ' + brl(r.restante) + '</div>' +
+    return '<div class="cartao' + (r.vip ? ' vip' : '') + '"><div class="card-linha"><span class="nome">' + esc(r.nome) + (r.nome2 ? ' e ' + esc(r.nome2) : '') + '</span><span class="preco">' + brl(r.pagamento_local ? r.total : r.sinal) + '</span></div>' +
+      '<div>' + esc(r.item_nome) + (r.vip ? ' <span class="chip ouro">VIP</span>' : '') + (r.pagamento_local ? ' <span class="chip ouro">Pagar no local · ' + esc(r.pagamento) + '</span>' : '') + '</div>' +
+      '<div class="min">' + (r.pagamento_local ? 'Total ' + brl(r.total) + ' · pagamento no atendimento (' + esc(r.pagamento) + ')' : 'Total ' + brl(r.total) + ' · Sinal ' + brl(r.sinal) + ' · Restante ' + brl(r.restante)) + '</div>' +
       '<div class="min">' + esc(fone(r.whatsapp)) + ' · código ' + esc(r.codigo) + (r.pix_clicado_em ? ' · avisou às ' + esc(dh(r.pix_clicado_em)) : '') + '</div>' +
       sessoesLista(r) + '<div class="acoes duas">' + botoes + '</div></div>';
   }
   function viewPendentes() {
     var d = P.dados.pendentes || { confirmacao: [], aguardando_pix: [] };
-    var h = '<h2 style="margin-bottom:10px">Pix para confirmar</h2>';
-    if (!d.confirmacao.length) h += '<div class="vazio">Nenhum Pix esperando confirmação. ✨</div>';
+    var h = '<h2 style="margin-bottom:10px">Reservas para confirmar</h2>';
+    if (!d.confirmacao.length) h += '<div class="vazio">Nenhuma reserva esperando confirmação. ✨</div>';
     h += d.confirmacao.map(function (r) {
-      return cardReserva(r, '<button type="button" class="btn-primario" data-act="confirmar" data-cod="' + esc(r.codigo) + '">Confirmar Pix</button>' +
+      return cardReserva(r, '<button type="button" class="btn-primario" data-act="confirmar" data-cod="' + esc(r.codigo) + '"' + (r.pagamento_local ? ' data-local="1"' : '') + '>' + (r.pagamento_local ? 'Aprovar reserva' : 'Confirmar Pix') + '</button>' +
         '<button type="button" class="btn-perigo" data-act="cancelar" data-cod="' + esc(r.codigo) + '">Cancelar</button>');
     }).join('');
     if (d.aguardando_pix.length) {
@@ -137,7 +137,7 @@
           return '<button type="button" class="btn-discreto" data-act="realizada" data-cod="' + esc(r.codigo) + '" data-n="' + s.n + '">Marcar sessão ' + (r.sessoes.length > 1 ? s.n + ' ' : '') + 'como realizada <span class="min">(' + esc(dataBR(s.data)) + ')</span></button>';
         }).join('') +
         (r.restante_pago ? '<button type="button" class="btn-discreto" data-act="restante" data-undo="1" data-cod="' + esc(r.codigo) + '">Desfazer “restante pago”</button>'
-          : '<button type="button" class="btn-primario" data-act="restante" data-cod="' + esc(r.codigo) + '">Marcar restante como pago</button>') + '</div></div>';
+          : '<button type="button" class="btn-primario" data-act="restante" data-cod="' + esc(r.codigo) + '">' + (r.pagamento_local ? 'Marcar pagamento como recebido' : 'Marcar restante como pago') + '</button>') + '</div></div>';
     }).join('');
   }
 
@@ -173,8 +173,11 @@
     if (r.email_motivo === 'cota') return ['erro', 'E-mail não enviado (limite diário do Gmail atingido). Use o botão do WhatsApp.'];
     return ['erro', 'E-mail não enviado, use o botão do WhatsApp.'];
   }
+  function formaSelectHtml(sel) {
+    return '<label class="campo"><span>Como a cliente pagou?</span><select id="m-forma">' + ['Pix', 'Dinheiro', 'Cartão de débito', 'Cartão de crédito'].map(function (f) { return '<option' + (f === sel ? ' selected' : '') + '>' + esc(f) + '</option>'; }).join('') + '</select></label>';
+  }
   function modalRestante(i) {
-    abrirModal('<h3 style="margin-bottom:8px">Atendimento finalizado ✨</h3><p class="lead">' + esc(i.nome) + ': o restante de <b>' + brl(i.valor) + '</b> foi pago?</p>' +
+    abrirModal('<h3 style="margin-bottom:8px">Atendimento finalizado ✨</h3><p class="lead">' + esc(i.nome) + (i.local ? ': o pagamento de <b>' + brl(i.valor) + '</b> (100% do valor) foi recebido?</p>' + formaSelectHtml(i.forma) : ': o restante de <b>' + brl(i.valor) + '</b> foi pago?</p>') +
       '<p class="min" style="margin-bottom:12px">Se ainda não recebeu, ele fica como “pendente de confirmar” no Financeiro, sem contar como dinheiro recebido.</p>' +
       '<div class="acoes duas"><button type="button" class="btn-discreto" data-m="fechar">Ainda não</button>' +
       '<button type="button" class="btn-primario" data-act="restante-sim" data-cod="' + esc(i.codigo) + '" id="m-ok">Sim, recebi</button></div>');
@@ -195,7 +198,7 @@
 
   async function agir(a, ds) {
     if (a === 'confirmar') {
-      return modalConfirmar('Confirmar o Pix?', 'Vai criar os eventos na Agenda Google e enviar o e-mail de confirmação para a cliente (se ela informou e-mail).', 'Confirmar Pix', false, async function () {
+      return modalConfirmar(ds.local ? 'Aprovar a reserva?' : 'Confirmar o Pix?', ds.local ? 'Vai criar os eventos na Agenda Google e avisar a cliente. O pagamento é no atendimento, então nada entra no Financeiro agora.' : 'Vai criar os eventos na Agenda Google e enviar o e-mail de confirmação para a cliente (se ela informou e-mail).', ds.local ? 'Aprovar reserva' : 'Confirmar Pix', false, async function () {
         var r = await executar(function () { return chamar('adm_confirmar', { codigo: ds.cod }); });
         if (!r) return;
         P.dados.pendentes = await chamar('adm_pendentes');
@@ -211,7 +214,7 @@
       });
     }
     if (a === 'realizada') { var r1 = await executar(function () { return chamar('adm_sessao_realizada', { codigo: ds.cod, n: +ds.n }); }, 'Sessão marcada como realizada'); if (r1) { await abrir('pacotes'); var av = r1.estoque_aviso || (r1.estoque_alertas && r1.estoque_alertas.length ? 'Hora de repor: ' + r1.estoque_alertas.join(', ') : ''); if (av) setTimeout(function () { toast(av, 8000); }, 3000); if (r1.restante_pendente) modalRestante(r1.restante_pendente); } return; }
-    if (a === 'restante-sim') { var r4 = await executar(function () { return chamar('adm_restante_pago', { codigo: ds.cod }); }, 'Restante confirmado ✨'); if (r4) { P.modal = null; abrir('pacotes'); } return; }
+    if (a === 'restante-sim') { var r4 = await executar(function () { return chamar('adm_restante_pago', { codigo: ds.cod, forma: (document.getElementById('m-forma') || {}).value || '' }); }, 'Restante confirmado ✨'); if (r4) { P.modal = null; abrir('pacotes'); } return; }
     if (a === 'restante') { var r2 = await executar(function () { return chamar('adm_restante_pago', { codigo: ds.cod, desfazer: !!ds.undo }); }, ds.undo ? 'Desfeito' : 'Restante marcado como pago'); if (r2) abrir('pacotes'); return; }
     if (a === 'desbloquear') { var r3 = await executar(function () { return chamar('adm_desbloquear', { id: ds.id }); }, 'Bloqueio removido'); if (r3) abrir('bloqueios'); return; }
     if (a === 'remarcar') return abrirRemarcar(ds);
