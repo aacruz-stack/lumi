@@ -114,12 +114,13 @@
         '<span>' + (pend ? '<span class="chip erro">' + esc(s.status_reserva) + '</span>' : '<span class="chip ok">Confirmado</span>') + (s.status_sessao === 'Realizada' ? '<span class="chip">Realizada</span>' : '') + (s.vip ? '<span class="chip ouro">VIP</span>' : '') + '</span></div>' +
         '<div><b>' + esc(s.nome) + '</b> · ' + esc(s.item_nome) + (s.total_sessoes > 1 ? ' · sessão ' + s.n + ' de ' + s.total_sessoes : '') + '</div>' +
         '<div class="min"><a href="' + zap(s.whatsapp) + '" target="_blank" rel="noopener">' + esc(fone(s.whatsapp)) + '</a> · reagendamentos usados: ' + s.reag_usados + ' de ' + s.reag_max + '</div>' +
-        (s.status_sessao === 'Agendada' ? '<div class="acoes"><button type="button" class="btn-discreto" data-act="remarcar" data-cod="' + esc(s.codigo) + '" data-n="' + s.n + '" data-data="' + esc(s.data) + '" data-hora="' + esc(s.inicio) + '" data-nome="' + esc(s.nome) + '" data-uso="' + s.reag_usados + '" data-max="' + s.reag_max + '">Remarcar</button></div>' : '') + (s.status_sessao === 'Agendada' ? '<div class="acoes"><button type="button" class="btn-perigo" data-act="cancelar" data-cod="' + esc(s.codigo) + '">Cancelar reserva</button></div>' : '') + '</div>';
+        (s.status_sessao === 'Agendada' ? '<div class="acoes"><button type="button" class="btn-discreto" data-act="remarcar" data-cod="' + esc(s.codigo) + '" data-n="' + s.n + '" data-data="' + esc(s.data) + '" data-hora="' + esc(s.inicio) + '" data-nome="' + esc(s.nome) + '" data-uso="' + s.reag_usados + '" data-max="' + s.reag_max + '">Remarcar</button></div>' : '') + extrasHtml(s.extras) + (s.status_reserva === 'Confirmado' ? '<div class="acoes"><button type="button" class="btn-discreto" data-act="acrescentar" data-cod="' + esc(s.codigo) + '" data-nome="' + esc(s.nome) + '">Acrescentar itens</button></div>' : '') + (s.status_sessao === 'Agendada' ? '<div class="acoes"><button type="button" class="btn-perigo" data-act="cancelar" data-cod="' + esc(s.codigo) + '">Cancelar reserva</button></div>' : '') + '</div>';
     });
     return h;
   }
 
   /* ---------- pacotes ---------- */
+  function extrasHtml(x) { return x ? '<div class="min" style="margin-top:4px">Acrescentado no local: ' + x.itens.map(esc).join(', ') + ' · <b>' + brl(x.total) + '</b></div>' : ''; }
   function viewPacotes() {
     var d = P.dados.pacotes || { reservas: [] };
     var h = '<div class="filtros"><button type="button" data-pf="abertos" class="' + (P.pacFiltro === 'abertos' ? 'on' : '') + '">Em aberto</button><button type="button" data-pf="todos" class="' + (P.pacFiltro === 'todos' ? 'on' : '') + '">Todos</button></div>';
@@ -132,12 +133,12 @@
         '<div class="min">' + esc(fone(r.whatsapp)) + '</div><div class="barra"><i style="width:' + pct + '%"></i></div>' +
         '<div>Sessões: <b>' + r.feitas + '</b> feitas · <b>' + r.restantes + '</b> restantes</div>' +
         '<div class="min">Validade até ' + esc(dataBR(r.validade_ate)) + (vencendo ? ' <span class="chip erro">vencendo</span>' : '') + '</div>' +
-        '<div style="margin-top:6px">A receber: <b style="color:var(--dourado-claro)">' + brl(r.a_receber) + '</b> ' + (r.restante_pago ? '<span class="chip ok">restante pago</span>' : '') + '</div>' +
+        '<div style="margin-top:6px">A receber: <b style="color:var(--dourado-claro)">' + brl(r.a_receber) + '</b> ' + (r.restante_pago ? '<span class="chip ok">restante pago</span>' : '') + '</div>' + extrasHtml(r.extras) +
         '<div class="acoes">' + prox.map(function (s) {
           return '<button type="button" class="btn-discreto" data-act="realizada" data-cod="' + esc(r.codigo) + '" data-n="' + s.n + '">Marcar sessão ' + (r.sessoes.length > 1 ? s.n + ' ' : '') + 'como realizada <span class="min">(' + (s.data ? esc(dataBR(s.data)) : 'sem data marcada') + ')</span></button>';
         }).join('') +
         (r.restante_pago ? '<button type="button" class="btn-discreto" data-act="restante" data-undo="1" data-cod="' + esc(r.codigo) + '">Desfazer “restante pago”</button>'
-          : '<button type="button" class="btn-primario" data-act="restante" data-cod="' + esc(r.codigo) + '">' + (r.pagamento_local ? 'Marcar pagamento como recebido' : 'Marcar restante como pago') + '</button>') + '<button type="button" class="btn-perigo" data-act="cancelar" data-cod="' + esc(r.codigo) + '">Cancelar reserva</button></div></div>';
+          : '<button type="button" class="btn-primario" data-act="restante" data-cod="' + esc(r.codigo) + '">' + (r.pagamento_local ? 'Marcar pagamento como recebido' : 'Marcar restante como pago') + '</button>') + '<button type="button" class="btn-discreto" data-act="acrescentar" data-cod="' + esc(r.codigo) + '" data-nome="' + esc(r.nome) + '">Acrescentar itens</button><button type="button" class="btn-perigo" data-act="cancelar" data-cod="' + esc(r.codigo) + '">Cancelar reserva</button></div></div>';
     }).join('');
   }
 
@@ -219,6 +220,7 @@
     if (a === 'restante') { var r2 = await executar(function () { return chamar('adm_restante_pago', { codigo: ds.cod, desfazer: !!ds.undo }); }, ds.undo ? 'Desfeito' : 'Restante marcado como pago'); if (r2) abrir('pacotes'); return; }
     if (a === 'desbloquear') { var r3 = await executar(function () { return chamar('adm_desbloquear', { id: ds.id }); }, 'Bloqueio removido'); if (r3) abrir('bloqueios'); return; }
     if (a === 'remarcar') return abrirRemarcar(ds);
+    if (a === 'acrescentar') { if (EXT.vincular) EXT.vincular(ds.cod, ds.nome); return abrir('caixa'); }
   }
 
   /* ---------- remarcar ---------- */

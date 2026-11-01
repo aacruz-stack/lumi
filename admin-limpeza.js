@@ -24,7 +24,9 @@
   }
 
   function secao() {
-    var h = '<div class="cartao" style="margin-top:16px"><h3 style="margin-bottom:6px">Testes e limpeza</h3>' +
+    var h = '<div class="cartao" style="margin-top:16px"><h3 style="margin-bottom:6px">Regras do negócio</h3><p class="min">Todas as regras (preços, sinal, validade, remarcação, pagamentos) explicadas em um só lugar: ' +
+      '<a href="https://github.com/aacruz-stack/lumi/blob/main/REGRAS.md" target="_blank" rel="noopener">abrir REGRAS.md</a>.</p></div>' +
+      '<div class="cartao" style="margin-top:16px"><h3 style="margin-bottom:6px">Testes e limpeza</h3>' +
       '<p class="min">Quando você fizer um teste, dê um nome que <b>comece com TESTE</b> (ex.: "TESTE Maria"). Depois é só apagar daqui, sem sobrar nada no sistema nem na sua Agenda do Google.</p>';
 
     // 1) apagar todos os testes de uma vez

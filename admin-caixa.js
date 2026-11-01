@@ -7,7 +7,7 @@
   var P = A.P, EXT = A.EXT, chamar = A.chamar;
   var SUBS = [['nova', 'Nova venda'], ['hoje', 'Vendas do dia']];
   var GRUPOS = [['sessao', 'Sessões'], ['pacote', 'Pacotes'], ['adicional', 'Adicionais e produtos']];
-  var C = { sub: 'nova', itens: [], desconto: '', recebido: '', recAuto: true, forma: 'Pix', cliente: '', token: novoToken(), data: '', cat: null, catAt: 0, enviando: false };
+  var C = { sub: 'nova', itens: [], desconto: '', recebido: '', recAuto: true, forma: 'Pix', cliente: '', reserva: null, token: novoToken(), data: '', cat: null, catAt: 0, enviando: false };
 
   function novoToken() {
     try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
@@ -56,7 +56,9 @@
 
   function viewNova() {
     var cat = C.cat;
-    var h = '<div class="cartao"><h3 style="margin-bottom:6px">Sessão por minuto</h3>' +
+    var h = C.reserva ? '<div class="msg info" style="margin-bottom:12px">Acrescentando itens à reserva de <b>' + esc(C.reserva.nome) + '</b> (código ' + esc(C.reserva.cod) + '). O pacote e o sinal dela não mudam: o que você adicionar aqui é cobrado à parte.' +
+      '<div class="acoes"><button type="button" class="btn-discreto" data-cx="desligar">Desligar (venda comum)</button></div></div>' : '';
+    h += '<div class="cartao"><h3 style="margin-bottom:6px">Sessão por minuto</h3>' +
       '<p class="min" style="margin-bottom:8px">O valor acompanha as sessões do catálogo.</p>' +
       '<div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">' +
       campo('Quantos minutos?', '<input type="text" inputmode="numeric" id="cx-min" placeholder="Ex.: 50" maxlength="3">') +
@@ -112,7 +114,10 @@
       else if (recC < tot) { f.style.display = ''; f.className = 'msg info'; f.textContent = 'Faltam ' + brl((tot - recC) / 100) + '. Esse valor fica como pendente de confirmar no Financeiro.'; }
       else f.style.display = 'none';
     }
-    if (btn) btn.disabled = C.enviando || tot <= 0 || recC > tot || descC() >= subC();
+    if (btn) {
+      btn.disabled = C.enviando || tot <= 0 || recC > tot || descC() >= subC();
+      if (!C.enviando) btn.textContent = (C.forma === 'Pix' && recC > 0) ? 'Gerar QR Code do Pix' : 'Finalizar venda';
+    }
   }
 
   function viewDia(d) {
@@ -148,11 +153,37 @@
     else if (id === 'cx-cli') C.cliente = ev.target.value;
   });
   root.addEventListener('change', function (ev) {
-    if (ev.target.id === 'cx-forma') C.forma = ev.target.value;
+    if (ev.target.id === 'cx-forma') { C.forma = ev.target.value; atualizaTotais(); }
     if (ev.target.id === 'cx-data') { C.data = ev.target.value; A.abrir('caixa'); }
   });
 
   function redesenha() { A.desenhar(); atualizaTotais(); }
+
+  // Pix: mostra o QR Code para a cliente pagar; a venda só é registrada depois de "Pagamento confirmado"
+  async function pedirPix() {
+    if (C.enviando) return;
+    var tot = totC(); if (tot <= 0) return;
+    var rec = C.recAuto ? tot / 100 : dec(C.recebido);
+    if (isNaN(rec)) { toast('Digite quanto a cliente pagou agora.'); return; }
+    if (cent(rec) > tot) { toast('O valor pago não pode ser maior que o total.'); return; }
+    if (!(rec > 0)) return finalizar();
+    C.enviando = true; atualizaTotais();
+    var b = document.getElementById('cx-fin'); if (b) b.textContent = 'Gerando QR Code...';
+    try {
+      var px = await chamar('adm_caixa_pix', { valor: String(rec) });
+      C.enviando = false; C.pix = { brcode: px.brcode, valor: px.valor, total: tot };
+      var svg = '';
+      try { var q = qrcode(0, 'M'); q.addData(px.brcode); q.make(); svg = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch (e) { svg = ''; }
+      A.abrirModal('<h3 style="margin-bottom:6px">Pix · ' + brl(px.valor) + '</h3><p class="min" style="margin-bottom:10px">Mostre o QR Code para a cliente escanear e pagar. Só confirme depois que o Pix cair na sua conta.</p>' +
+        '<div style="background:#fff;padding:12px;border-radius:12px;max-width:260px;margin:0 auto 10px">' + (svg || '<div class="min" style="color:#333">Não consegui desenhar o QR Code. Use o código abaixo.</div>') + '</div>' +
+        '<div class="acoes"><button type="button" class="btn-discreto" data-cx="pixcopiar">Copiar código (copia e cola)</button></div>' +
+        '<div class="acoes duas"><button type="button" class="btn-discreto" data-cx="pixvoltar">Voltar</button><button type="button" class="btn-primario" data-cx="pixok">Pagamento confirmado ✓</button></div>');
+    } catch (e) {
+      C.enviando = false;
+      if (/senha|tentativas/i.test(e.message)) return A.telaLogin(e.message);
+      P.erro = e.message; A.desenhar(); atualizaTotais(); window.scrollTo({ top: 0 });
+    }
+  }
 
   async function finalizar() {
     if (C.enviando) return;
@@ -163,7 +194,7 @@
     var b = document.getElementById('cx-fin'); if (b) b.textContent = 'Registrando...';
     try {
       var r = await chamar('adm_caixa_vender', {
-        token: C.token, forma: C.forma, cliente: C.cliente, desconto: C.desconto, recebido: String(rec),
+        token: C.token, forma: C.forma, cliente: C.cliente, reserva: C.reserva ? C.reserva.cod : '', desconto: C.desconto, recebido: String(rec),
         itens: C.itens.map(function (l) { return l.t === 'catalogo' ? { tipo: 'catalogo', id: l.id, qtd: l.qtd } : l.t === 'minutos' ? { tipo: 'minutos', minutos: l.min } : { tipo: 'livre', nome: l.nome, valor: l.preco }; })
       });
       if (r.repetida && cent(r.total) !== totalEnviado) { // o servidor ja tinha uma venda com este envio: a de agora NAO foi gravada
@@ -171,7 +202,7 @@
         A.abrirModal('<h3 style="margin-bottom:8px">Atenção ✋</h3><div class="msg erro">Uma venda de <b>' + brl(r.total) + '</b> já tinha sido registrada neste envio (a conexão tinha caído). <b>A venda que está na tela NÃO foi gravada.</b></div><p class="min">Confira em "Vendas do dia". Se a venda antiga estiver errada, desfaça; depois finalize esta de novo.</p><div class="acoes"><button type="button" class="btn-primario" data-m="fechar">Entendi</button></div>');
         return;
       }
-      C.itens = []; C.desconto = ''; C.recebido = ''; C.recAuto = true; C.cliente = ''; C.token = novoToken(); C.enviando = false;
+      C.itens = []; C.desconto = ''; C.recebido = ''; C.recAuto = true; C.cliente = ''; C.reserva = null; C.pix = null; C.token = novoToken(); C.enviando = false;
       var linhas = '<div class="msg ok">Venda de <b>' + brl(r.total) + '</b> registrada e lançada no Financeiro.</div>';
       if (r.pacotes_criados > 0) linhas += '<div class="msg info">' + r.pacotes_criados + ' pacote(s) criado(s) na aba <b>Pacotes</b>, com as sessões para você ir marcando como realizadas.</div>';
       if (r.pacote_aviso) linhas += '<div class="msg erro">' + esc(r.pacote_aviso) + '</div>';
@@ -186,6 +217,9 @@
       P.erro = e.message + (e.negocio ? '' : ' Não tenho certeza se a venda foi registrada: confira em "Vendas do dia" antes de tentar de novo.'); A.desenhar(); atualizaTotais(); window.scrollTo({ top: 0 });
     }
   }
+
+  // "Acrescentar itens" nos cartões da Agenda/Pacotes: a venda do Caixa fica ligada à reserva
+  EXT.vincular = function (cod, nome) { C.reserva = { cod: cod, nome: nome || 'cliente' }; C.cliente = nome || ''; C.sub = 'nova'; };
 
   var anterior = EXT.click;
   EXT.click = function (t, ev) {
@@ -212,7 +246,15 @@
     if (c === 'mais') { var a = C.itens[+t.dataset.i]; if (a) a.qtd = Math.min(20, a.qtd + 1); redesenha(); return true; }
     if (c === 'menos') { var b = C.itens[+t.dataset.i]; if (b) { if (b.qtd > 1) b.qtd--; else C.itens.splice(+t.dataset.i, 1); } redesenha(); return true; }
     if (c === 'rem') { C.itens.splice(+t.dataset.i, 1); redesenha(); return true; }
-    if (c === 'finalizar') { finalizar(); return true; }
+    if (c === 'finalizar') { if (C.forma === 'Pix') pedirPix(); else finalizar(); return true; }
+    if (c === 'pixvoltar') { A.fecharModal(); return true; }
+    if (c === 'pixok') { if (C.enviando) return true; P.modal = null; A.desenhar(); finalizar(); return true; }
+    if (c === 'pixcopiar') {
+      var tx = C.pix && C.pix.brcode;
+      if (tx) { try { navigator.clipboard.writeText(tx).then(function () { toast('Código copiado!'); }, function () { toast('Não consegui copiar.'); }); } catch (e) { toast('Não consegui copiar.'); } }
+      return true;
+    }
+    if (c === 'desligar') { C.reserva = null; C.cliente = ''; A.desenhar(); atualizaTotais(); return true; }
     if (c === 'apagarvenda') {
       A.modalConfirmar('Apagar esta venda de vez?', 'Apaga o registro da venda, o lançamento no Financeiro e o pacote criado por ela, e devolve o material ao estoque. Não dá para desfazer. Use para testes.', 'Apagar de vez', true, async function () {
         try { await chamar('adm_venda_excluir', { id: t.dataset.id }); P.modal = null; await A.abrir('caixa'); toast('Venda apagada'); }

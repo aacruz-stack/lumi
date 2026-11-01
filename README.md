@@ -6,6 +6,8 @@ Site de agendamento (parte visual) hospedado no GitHub Pages, com um painel para
 - **Painel da dona:** `admin.html` (protegido por senha no servidor)
 - **Back-end:** projeto "Lumi" no Google Apps Script, ligado a uma planilha do Google (conta do Lumi)
 
+> 📖 **Todas as regras do negócio, bem explicadas:** [REGRAS.md](REGRAS.md)
+
 ## Como funciona o agendamento
 
 1. A cliente escolhe serviço (ou pacote), adicionais, datas e informa nome e WhatsApp (e-mail é opcional).
@@ -29,6 +31,10 @@ Site de agendamento (parte visual) hospedado no GitHub Pages, com um painel para
 
 **Testes e limpeza (Ajustes):** dê aos testes um nome que comece com `TESTE`. Em Ajustes dá para apagar todos de uma vez ou reserva por reserva (inclui o evento na Agenda do Google, o financeiro e o estoque ligados), e procurar/apagar eventos "Lumi · ..." sobrando na Agenda. Também há "Apagar de vez" nas vendas do Caixa e "Excluir este insumo". Para reservas reais use "Cancelar reserva" (o dinheiro já recebido continua no Financeiro; para devolver, lance "Reembolso de cliente").
 
+**Pix no Caixa:** ao escolher Pix aparece o QR Code; a venda só é registrada depois de "Pagamento confirmado".
+
+**Acrescentar itens a uma reserva:** botão "Acrescentar itens" nos cartões da Agenda e dos Pacotes; vira uma venda do Caixa ligada à reserva (não muda o pacote nem o sinal).
+
 **Pacote vendido no Caixa:** cria o pacote na aba Pacotes com as sessões sem data (para marcar como realizadas); o dinheiro entra uma vez, pela venda.
 
 **Valor por minuto (Caixa):** acompanha as sessões do catálogo (interpola entre elas e arredonda ao real). Passou da maior sessão, soma a taxa do último trecho.
@@ -40,6 +46,7 @@ Site de agendamento (parte visual) hospedado no GitHub Pages, com um painel para
 - `index.html`, `app.js`, `style.css` — site da cliente
 - `admin.html`, `admin.js` — painel (núcleo: pendentes, agenda, pacotes, bloqueios)
 - `admin-catalogo.js`, `admin-estoque.js`, `admin-financeiro.js`, `admin-caixa.js` — abas do painel (cada uma se pluga em `admin.js`)
+- `REGRAS.md` — regras do negócio explicadas
 - `api.js`, `config.js` — comunicação com o Apps Script (`config.js` guarda só o endereço público do Web App)
 - `vendor/qrcode.min.js` — gerador do QR Code do Pix
 
