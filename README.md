@@ -25,6 +25,11 @@ Site de agendamento (parte visual) hospedado no GitHub Pages, com um painel para
 | Estoque | Insumos (custo calculado pelo preço da embalagem), fichas técnicas, movimentos; baixa automática ao realizar a sessão |
 | Financeiro | Resumo do mês, lançamentos (automáticos e manuais), pendentes de confirmar, CMV por procedimento |
 | Catálogo / Ajustes | Itens, promoções, regras, horários e dados do negócio |
+| Assistente | IA (Gemini): analisa só números agregados e sugere ações; nunca altera nada |
+
+**Testes e limpeza (Ajustes):** dê aos testes um nome que comece com `TESTE`. Em Ajustes dá para apagar todos de uma vez ou reserva por reserva (inclui o evento na Agenda do Google, o financeiro e o estoque ligados), e procurar/apagar eventos "Lumi · ..." sobrando na Agenda. Também há "Apagar de vez" nas vendas do Caixa e "Excluir este insumo". Para reservas reais use "Cancelar reserva" (o dinheiro já recebido continua no Financeiro; para devolver, lance "Reembolso de cliente").
+
+**Pacote vendido no Caixa:** cria o pacote na aba Pacotes com as sessões sem data (para marcar como realizadas); o dinheiro entra uma vez, pela venda.
 
 **Valor por minuto (Caixa):** acompanha as sessões do catálogo (interpola entre elas e arredonda ao real). Passou da maior sessão, soma a taxa do último trecho.
 
