@@ -114,7 +114,7 @@
         '<span>' + (pend ? '<span class="chip erro">' + esc(s.status_reserva) + '</span>' : '<span class="chip ok">Confirmado</span>') + (s.status_sessao === 'Realizada' ? '<span class="chip">Realizada</span>' : '') + (s.vip ? '<span class="chip ouro">VIP</span>' : '') + '</span></div>' +
         '<div><b>' + esc(s.nome) + '</b> · ' + esc(s.item_nome) + (s.total_sessoes > 1 ? ' · sessão ' + s.n + ' de ' + s.total_sessoes : '') + '</div>' +
         '<div class="min"><a href="' + zap(s.whatsapp) + '" target="_blank" rel="noopener">' + esc(fone(s.whatsapp)) + '</a> · reagendamentos usados: ' + s.reag_usados + ' de ' + s.reag_max + '</div>' +
-        (s.status_sessao === 'Agendada' ? '<div class="acoes"><button type="button" class="btn-discreto" data-act="remarcar" data-cod="' + esc(s.codigo) + '" data-n="' + s.n + '" data-data="' + esc(s.data) + '" data-hora="' + esc(s.inicio) + '" data-nome="' + esc(s.nome) + '" data-uso="' + s.reag_usados + '" data-max="' + s.reag_max + '">Remarcar</button></div>' : '') + '</div>';
+        (s.status_sessao === 'Agendada' ? '<div class="acoes"><button type="button" class="btn-discreto" data-act="remarcar" data-cod="' + esc(s.codigo) + '" data-n="' + s.n + '" data-data="' + esc(s.data) + '" data-hora="' + esc(s.inicio) + '" data-nome="' + esc(s.nome) + '" data-uso="' + s.reag_usados + '" data-max="' + s.reag_max + '">Remarcar</button></div>' : '') + (s.status_sessao === 'Agendada' ? '<div class="acoes"><button type="button" class="btn-perigo" data-act="cancelar" data-cod="' + esc(s.codigo) + '">Cancelar reserva</button></div>' : '') + '</div>';
     });
     return h;
   }
@@ -134,10 +134,10 @@
         '<div class="min">Validade até ' + esc(dataBR(r.validade_ate)) + (vencendo ? ' <span class="chip erro">vencendo</span>' : '') + '</div>' +
         '<div style="margin-top:6px">A receber: <b style="color:var(--dourado-claro)">' + brl(r.a_receber) + '</b> ' + (r.restante_pago ? '<span class="chip ok">restante pago</span>' : '') + '</div>' +
         '<div class="acoes">' + prox.map(function (s) {
-          return '<button type="button" class="btn-discreto" data-act="realizada" data-cod="' + esc(r.codigo) + '" data-n="' + s.n + '">Marcar sessão ' + (r.sessoes.length > 1 ? s.n + ' ' : '') + 'como realizada <span class="min">(' + esc(dataBR(s.data)) + ')</span></button>';
+          return '<button type="button" class="btn-discreto" data-act="realizada" data-cod="' + esc(r.codigo) + '" data-n="' + s.n + '">Marcar sessão ' + (r.sessoes.length > 1 ? s.n + ' ' : '') + 'como realizada <span class="min">(' + (s.data ? esc(dataBR(s.data)) : 'sem data marcada') + ')</span></button>';
         }).join('') +
         (r.restante_pago ? '<button type="button" class="btn-discreto" data-act="restante" data-undo="1" data-cod="' + esc(r.codigo) + '">Desfazer “restante pago”</button>'
-          : '<button type="button" class="btn-primario" data-act="restante" data-cod="' + esc(r.codigo) + '">' + (r.pagamento_local ? 'Marcar pagamento como recebido' : 'Marcar restante como pago') + '</button>') + '</div></div>';
+          : '<button type="button" class="btn-primario" data-act="restante" data-cod="' + esc(r.codigo) + '">' + (r.pagamento_local ? 'Marcar pagamento como recebido' : 'Marcar restante como pago') + '</button>') + '<button type="button" class="btn-perigo" data-act="cancelar" data-cod="' + esc(r.codigo) + '">Cancelar reserva</button></div></div>';
     }).join('');
   }
 
@@ -208,7 +208,7 @@
       });
     }
     if (a === 'cancelar') {
-      return modalConfirmar('Cancelar reserva?', 'Os horários serão liberados e os eventos da Agenda removidos.', 'Cancelar reserva', true, async function () {
+      return modalConfirmar('Cancelar reserva?', 'Os horários serão liberados e os eventos da Agenda removidos. O que já foi recebido continua no Financeiro: se for devolver, lance um "Reembolso de cliente" em Financeiro.', 'Cancelar reserva', true, async function () {
         var r = await executar(function () { return chamar('adm_cancelar', { codigo: ds.cod }); }, 'Reserva cancelada');
         if (r) { P.modal = null; abrir(P.aba); }
       });

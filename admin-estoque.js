@@ -170,6 +170,7 @@
       campoQtd('i-emb', 'O que veio nessa embalagem?', base, FORM.emb, '', FORM.embU) +
       '<div class="msg info" id="i-prev" style="margin:8px 0 0">Preencha o preço e o que veio para ver o custo.</div></div>';
     if (!novo) h += '<label class="check"><input type="checkbox" id="i-ativo"' + (FORM.ativo ? ' checked' : '') + '><span>Ainda uso este insumo</span></label>';
+    if (!novo) h += '<div class="acoes"><button type="button" class="btn-perigo" data-est="insumo-excluir">Excluir este insumo</button></div>';
     h += '<div class="acoes duas"><button type="button" class="btn-discreto" data-m="fechar">Voltar</button><button type="button" class="btn-primario" data-est="insumo-salvar" id="btn-ins">Salvar</button></div>';
     A.abrirModal(h);
     previaCusto();
@@ -261,6 +262,14 @@
     if (c === 'insumo-novo') { formInsumo(null, false); return true; }
     if (c === 'insumo-editar') { formInsumo(insumo(t.dataset.id), false); return true; }
     if (c === 'insumo-salvar') { salvarInsumo(); return true; }
+    if (c === 'insumo-excluir') {
+      var idEx = FORM && FORM.id;
+      A.modalConfirmar('Excluir este insumo?', 'Apaga o insumo, as fichas técnicas que o usam e todo o histórico dele (inclusive compras lançadas no Financeiro). Não dá para desfazer. Se ele só acabou, prefira desmarcar "Ainda uso este insumo".', 'Excluir insumo', true, async function () {
+        try { await chamar('adm_insumo_excluir', { id: idEx }); await recarregar('Insumo excluído'); }
+        catch (e) { P.modal = null; P.erro = e.message; A.desenhar(); }
+      });
+      return true;
+    }
     if (c === 'mov') { formMov(insumo(t.dataset.id), t.dataset.t); return true; }
     if (c === 'mov-salvar') {
       comBotao('btn-mov', 'Registrar', async function () {

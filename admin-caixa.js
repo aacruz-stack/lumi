@@ -131,7 +131,7 @@
         '<div class="min">' + esc(v.hora) + ' · ' + esc(v.forma) + '</div><div class="min">' + resumo + '</div>' +
         (v.desconto > 0 ? '<div class="min">Desconto: ' + brl(v.desconto) + '</div>' : '') +
         '<div>' + (v.desfeita ? '<span class="chip erro">Venda desfeita</span>' : v.falta > 0 ? '<span class="chip ouro">Falta receber ' + brl(v.falta) + '</span>' : '<span class="chip ok">Pago</span>') + '</div>' +
-        (v.desfeita ? '' : '<div class="acoes"><button type="button" class="btn-perigo" data-cx="desfazer" data-id="' + esc(v.id) + '">Desfazer venda</button></div>') + '</div>';
+        '<div class="acoes">' + (v.desfeita ? '' : '<button type="button" class="btn-perigo" data-cx="desfazer" data-id="' + esc(v.id) + '">Desfazer venda</button>') + '<button type="button" class="btn-discreto" data-cx="apagarvenda" data-id="' + esc(v.id) + '">Apagar de vez (teste)</button></div></div>';
     }).join('');
   }
 
@@ -173,6 +173,8 @@
       }
       C.itens = []; C.desconto = ''; C.recebido = ''; C.recAuto = true; C.cliente = ''; C.token = novoToken(); C.enviando = false;
       var linhas = '<div class="msg ok">Venda de <b>' + brl(r.total) + '</b> registrada e lançada no Financeiro.</div>';
+      if (r.pacotes_criados > 0) linhas += '<div class="msg info">' + r.pacotes_criados + ' pacote(s) criado(s) na aba <b>Pacotes</b>, com as sessões para você ir marcando como realizadas.</div>';
+      if (r.pacote_aviso) linhas += '<div class="msg erro">' + esc(r.pacote_aviso) + '</div>';
       if (r.resto > 0) linhas += '<div class="msg info">Faltam ' + brl(r.resto) + ': ficou como pendente de confirmar no Financeiro.</div>';
       if (r.estoque_alertas && r.estoque_alertas.length) linhas += '<div class="msg erro"><b>Hora de repor:</b> ' + r.estoque_alertas.map(esc).join(', ') + '</div>';
       if (r.estoque_aviso) linhas += '<div class="msg erro">' + esc(r.estoque_aviso) + '</div>';
@@ -211,6 +213,13 @@
     if (c === 'menos') { var b = C.itens[+t.dataset.i]; if (b) { if (b.qtd > 1) b.qtd--; else C.itens.splice(+t.dataset.i, 1); } redesenha(); return true; }
     if (c === 'rem') { C.itens.splice(+t.dataset.i, 1); redesenha(); return true; }
     if (c === 'finalizar') { finalizar(); return true; }
+    if (c === 'apagarvenda') {
+      A.modalConfirmar('Apagar esta venda de vez?', 'Apaga o registro da venda, o lançamento no Financeiro e o pacote criado por ela, e devolve o material ao estoque. Não dá para desfazer. Use para testes.', 'Apagar de vez', true, async function () {
+        try { await chamar('adm_venda_excluir', { id: t.dataset.id }); P.modal = null; await A.abrir('caixa'); toast('Venda apagada'); }
+        catch (e) { P.modal = null; P.erro = e.message; A.desenhar(); }
+      });
+      return true;
+    }
     if (c === 'desfazer') {
       A.modalConfirmar('Desfazer esta venda?', 'Ela sai do caixa e do Financeiro, e o material volta ao estoque. Se você já devolveu o dinheiro para a cliente, é isso mesmo.', 'Desfazer venda', true, async function () {
         try { var r = await chamar('adm_caixa_desfazer', { id: t.dataset.id }); P.modal = null; await A.abrir('caixa'); toast(r.estoque_aviso || 'Venda desfeita'); }

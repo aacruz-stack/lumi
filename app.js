@@ -243,6 +243,15 @@
       return '<li>✦ ' + (lista.length > 1 ? 'Sessão ' + (s.n || i + 1) + ': ' : '') + esc(dataBR(s.data) + ' às ' + (s.hora || s.inicio)) + '</li>';
     }).join('') + '</ul>';
   }
+  // quem paga no local nao ve as regras de sinal/50%/restante (o pagamento e no atendimento)
+  function regrasLocal(regras) {
+    var out = ['💳 O pagamento é feito no local, no dia do atendimento.'];
+    (regras || []).forEach(function (l) {
+      if (/sinal|50%|restante/i.test(l) && !/falta|comparecimento/i.test(l)) return;
+      out.push(String(l).replace(/\s*Sinal sem devolução!?/i, ''));
+    });
+    return out;
+  }
   var PAGS = [['Pix', 'Pix', 'Sinal de [SINAL] agora e o restante no atendimento'], ['Cartão de débito', 'Débito', 'Pagar no local'], ['Cartão de crédito', 'Crédito', 'Pagar no local'], ['Dinheiro', 'Dinheiro', 'Pagar no local']];
   function pagamentoHtml() {
     var c = calc();
@@ -261,7 +270,7 @@
     h += pagamentoHtml() + (S.pag !== 'Pix' ? totaisLocalHtml(c) : '<div class="totais"><div><span>Total</span><span>' + brl(c.total) + '</span></div>' +
       '<div class="destaque"><span>Sinal a pagar agora (' + S.cat.percentual_sinal + '%)</span><span>' + brl(c.sinal) + '</span></div>' +
       '<div><span>Restante, ao final da 1ª sessão</span><span>' + brl(c.restante) + '</span></div></div>');
-    h += '<div class="cartao"><h3 style="margin-bottom:8px">Regras</h3><ul class="regras">' + it.regras.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></div>';
+    h += '<div class="cartao"><h3 style="margin-bottom:8px">Regras</h3><ul class="regras">' + (S.pag !== 'Pix' ? regrasLocal(it.regras) : it.regras).map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></div>';
     h += '<label class="check"><input type="checkbox" data-a="ac1"' + (S.ac1 ? ' checked' : '') + '><span>Li e concordo com as regras</span></label>' +
       '<label class="check"><input type="checkbox" data-a="ac2"' + (S.ac2 ? ' checked' : '') + '><span>Declaro que não me enquadro nas restrições de atendimento</span></label>';
     h += '<div class="acoes duas"><button type="button" class="btn-discreto" data-a="voltar"' + (S.enviando ? ' disabled' : '') + '>Voltar</button>' +
